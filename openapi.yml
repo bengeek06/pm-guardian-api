@@ -1,0 +1,339 @@
+openapi: 3.0.3
+info:
+  title: Dummy API
+  version: '1.0'
+  description: API for managing dummy items.
+
+servers:
+  - url: http://localhost:5000/
+
+paths:
+  /version:
+    get:
+      tags: ["Meta"]
+      summary: Get API version
+      responses:
+        '200':
+          description: Current API version
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "1.0.0"
+  /config:
+    get:
+      tags: ["Meta"]
+      summary: Get application configuration
+      responses:
+        '200':
+          description: Current application configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  FLASK_ENV:
+                    type: string
+                    example: "development"
+                  DEBUG:
+                    type: string
+                    example: "True"
+                  DATABASE_URI:
+                    type: string
+                    example: "sqlite:///:memory:"
+
+  /dummies:
+    get:
+      tags: ["Dummies"]
+      summary: List all dummy items
+      responses:
+        '200':
+          description: List of dummy items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Dummy'
+    post:
+      tags: ["Dummies"]
+      summary: Create a new dummy item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DummyCreate'
+      responses:
+        '201':
+          description: Dummy item created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dummy'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /dummies/{dummy_id}:
+    parameters:
+      - name: dummy_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: ["Dummies"]
+      summary: Get a dummy item by ID
+      responses:
+        '200':
+          description: Dummy item found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dummy'
+        '404':
+          description: Dummy not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags: ["Dummies"]
+      summary: Replace a dummy item by ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DummyCreate'
+      responses:
+        '200':
+          description: Dummy item updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dummy'
+        '400':
+          description: Validation or integrity error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '404':
+          description: Dummy not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    patch:
+      tags: ["Dummies"]
+      summary: Partially update a dummy item by ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DummyUpdate'
+      responses:
+        '200':
+          description: Dummy item updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dummy'
+        '400':
+          description: Validation or integrity error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '404':
+          description: Dummy not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags: ["Dummies"]
+      summary: Delete a dummy item by ID
+      responses:
+        '204':
+          description: Dummy deleted successfully
+        '404':
+          description: Dummy not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /export/csv:
+    get:
+      tags: ["Export"]
+      summary: Export all dummy items as CSV
+      responses:
+        '200':
+          description: CSV file containing all dummy items
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /import/csv:
+    post:
+      tags: ["Import"]
+      summary: Import dummy items from a CSV file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Import successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '207':
+          description: Partial success with errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '400':
+          description: Import failed or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /import/json:
+    post:
+      tags: ['Import']
+      summary: Import dummy items from a JSON file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Import successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '207':
+          description: Partial success with errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '400':
+          description: Import failed or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+components:
+  schemas:
+    Dummy:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Test Dummy"
+        description:
+          type: string
+          example: "A test dummy"
+    DummyCreate:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "Test Dummy"
+        description:
+          type: string
+          example: "A test dummy"
+    DummyUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Updated Dummy"
+        description:
+          type: string
+          example: "Updated description"
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Dummy not found"
+        error:
+          type: string
+          example: "Integrity error"
+    ValidationError:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Validation error"
+        errors:
+          type: object
+          additionalProperties: true
+          example: {"name": ["Name must be unique."]}
