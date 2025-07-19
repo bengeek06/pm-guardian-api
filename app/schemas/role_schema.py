@@ -1,3 +1,4 @@
+
 """
 Role Schema Module.
 
@@ -6,8 +7,9 @@ Role model instances. It provides validation and transformation logic for
 handling role data in API requests and responses, ensuring data integrity
 and proper formatting.
 """
+import uuid
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
-from marshmallow import fields, validate
+from marshmallow import fields, validate, post_load
 
 from app.models.role import Role
 
@@ -33,6 +35,15 @@ class RoleSchema(SQLAlchemyAutoSchema):
     def __init__(self, *args, **kwargs):
         self.context = kwargs.pop('context', {})
         super().__init__(*args, **kwargs)
+
+    @post_load
+    def convert_uuids_to_str(self, data, **kwargs):
+        """Convert UUID fields to string format after loading data."""
+        _ = kwargs
+        # Ensure company_id is always a string for the SQLAlchemy model
+        if 'company_id' in data and isinstance(data['company_id'], uuid.UUID):
+            data['company_id'] = str(data['company_id'])
+        return data
 
     class Meta:
         """

@@ -48,11 +48,11 @@ class RoleListResource(Resource):
             method=request.method,
             request_id=getattr(g, "request_id", None)
         )
-        
+
         try:
             company_id = request.args.get('company_id')
             roles = Role.query.filter_by(company_id=company_id).all()
-            schema = RoleSchema(many=True)
+            schema = RoleSchema(session=db.session, many=True)
             return schema.dump(roles), 200
         except SQLAlchemyError as e:
             logger.error("Database error while fetching roles: %s", str(e))
@@ -65,10 +65,16 @@ class RoleListResource(Resource):
         Returns:
             JSON response with the created role and HTTP status code 201.
         """
-        schema = RoleSchema()
+        logger.info(
+            "Creating new role.",
+            path=request.path,
+            method=request.method,
+            request_id=getattr(g, "request_id", None)
+        )
+        json_data = request.get_json()
+        schema = RoleSchema(session=db.session)
         try:
-            role_data = schema.load(request.json)
-            new_role = Role(**role_data)
+            new_role = schema.load(json_data)
             db.session.add(new_role)
             db.session.commit()
             return schema.dump(new_role), 201
@@ -108,13 +114,13 @@ class RoleResource(Resource):
             method=request.method,
             request_id=getattr(g, "request_id", None)
         )
-        
+
         try:
             role = Role.query.get(role_id)
             if not role:
                 return {"message": "Role not found."}, 404
-            
-            schema = RoleSchema()
+
+            schema = RoleSchema(session=db.session)
             return schema.dump(role), 200
         except SQLAlchemyError as e:
             logger.error("Database error while fetching role: %s", str(e))
@@ -130,16 +136,15 @@ class RoleResource(Resource):
         Returns:
             JSON response with the updated role data and HTTP status code 200.
         """
-        schema = RoleSchema()
+        schema = RoleSchema(session=db.session)
         try:
-            role_data = schema.load(request.json)
             role = Role.query.get(role_id)
             if not role:
                 return {"message": "Role not found."}, 404
-            
-            for key, value in role_data.items():
-                setattr(role, key, value)
-            
+
+            # Use Marshmallow to update the instance in place
+            role = schema.load(request.json, instance=role)
+
             db.session.commit()
             return schema.dump(role), 200
         except ValidationError as err:
@@ -164,16 +169,15 @@ class RoleResource(Resource):
         Returns:
             JSON response with the updated role data and HTTP status code 200.
         """
-        schema = RoleSchema(partial=True)
+        schema = RoleSchema(session=db.session, partial=True)
         try:
-            role_data = schema.load(request.json)
             role = Role.query.get(role_id)
             if not role:
                 return {"message": "Role not found."}, 404
-            
-            for key, value in role_data.items():
-                setattr(role, key, value)
-            
+
+            # Use Marshmallow to update the instance in place (partial=True)
+            role = schema.load(request.json, instance=role)
+
             db.session.commit()
             return schema.dump(role), 200
         except ValidationError as err:
@@ -196,7 +200,7 @@ class RoleResource(Resource):
             role_id (str): The unique identifier of the role.
 
         Returns:
-            JSON response with a success message and HTTP status code 204.
+            JSON response with a success message and HTTP status code 200.
         """
         logger.info(
             "Deleting role by ID.",
@@ -204,15 +208,15 @@ class RoleResource(Resource):
             method=request.method,
             request_id=getattr(g, "request_id", None)
         )
-        
+
         try:
             role = Role.query.get(role_id)
             if not role:
                 return {"message": "Role not found."}, 404
-            
+
             db.session.delete(role)
             db.session.commit()
-            return {"message": "Role deleted successfully."}, 204
+            return '', 204
         except SQLAlchemyError as e:
             db.session.rollback()
             logger.error("Database error while deleting role: %s", str(e))
