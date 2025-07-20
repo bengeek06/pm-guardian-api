@@ -30,21 +30,19 @@ class ResourceListResource(ApiResource):
 
     def get(self):
         """
-        List all resources for the authenticated company.
+        List all resources.
 
         Returns:
             tuple: JSON response with a list of resources and HTTP status code.
         """
         logger.info(
-            "Fetching resources for company.",
+            "Fetching all resources.",
             path=request.path,
             method=request.method,
             request_id=getattr(g, "request_id", None)
         )
-
         try:
-            company_id = request.args.get('company_id')
-            resources = Resource.query.filter_by(company_id=company_id).all()
+            resources = Resource.query.all()
             schema = ResourceSchema(session=db.session, many=True)
             return schema.dump(resources), 200
         except SQLAlchemyError as err:

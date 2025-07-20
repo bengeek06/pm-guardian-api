@@ -126,10 +126,6 @@ class PermissionSchema(SQLAlchemyAutoSchema):
         dump_only = ('id', 'created_at', 'updated_at')
 
     id = fields.UUID(dump_only=True)
-    company_id = fields.String(
-        required=True,
-        validate=validate_company_id
-    )
     operation = fields.String(
         required=True,
         validate=validate.OneOf([

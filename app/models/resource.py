@@ -7,9 +7,9 @@ A Resource represents an entity associated with a company, with unique name,
 description, and automatic timestamps. All fields and relationships are
 documented for clarity and maintainability.
 """
-
 import uuid
 from app.models.db import db
+from app.resources_list import RESOURCES
 
 
 class Resource(db.Model):
@@ -23,25 +23,20 @@ class Resource(db.Model):
         id (str): Unique identifier (UUID) for the resource.
         name (str): Name of the resource (max 50 chars).
         description (str, optional): Description (max 255 chars).
-        company_id (str): Foreign key to the company.
         created_at (datetime): Timestamp when created.
         updated_at (datetime): Timestamp when last modified.
         permissions (list): List of Permission objects linked to this resource.
     """
 
     __tablename__ = 'resources'
-    __table_args__ = (
-        db.UniqueConstraint('name', 'company_id',
-                            name='uq_resource_name_company'),
-    )
+
     id = db.Column(
         db.String(36),
         primary_key=True,
         default=lambda: str(uuid.uuid4())
     )
-    name = db.Column(db.String(50), nullable=False)
+    name = db.Column(db.String(50), nullable=False, unique=True)
     description = db.Column(db.String(255), nullable=True)
-    company_id = db.Column(db.String(36), nullable=False)
     created_at = db.Column(
         db.DateTime,
         server_default=db.func.current_timestamp()
@@ -64,3 +59,35 @@ class Resource(db.Model):
             str: A formatted string showing the resource name for debugging.
         """
         return f"<Resource {self.name}>"
+
+def sync_resources():
+    """
+    Synchronize the Resource table with the canonical RESOURCES list.
+    Creates missing resources and deletes those not in the list for the given company.
+
+    """
+    # Check if the table exists before syncing
+    from sqlalchemy import inspect
+    inspector = inspect(db.engine)
+    if not inspector.has_table(Resource.__tablename__):
+        # Table does not exist yet (e.g. before migrations)
+        return
+
+    current = Resource.query.all()
+    current_names = {r.name for r in current}
+    canonical_names = {r["name"] for r in RESOURCES}
+
+    # Add missing resources
+    for res in RESOURCES:
+        if res["name"] not in current_names:
+            db.session.add(Resource(
+                name=res["name"],
+                description=res.get("description"),
+            ))
+
+    # Delete resources not in canonical list
+    for r in current:
+        if r.name not in canonical_names:
+            db.session.delete(r)
+
+    db.session.commit()

@@ -29,7 +29,6 @@ class ResourceSchema(SQLAlchemyAutoSchema):
         id (fields.UUID): Unique identifier for the resource (read-only).
         name (fields.String): Name of the resource (required, max 50 chars).
         description (fields.String): Description (optional, max 255 chars).
-        company_id (fields.String): Company UUID (required, validated).
         created_at (fields.DateTime): Creation timestamp (read-only).
         updated_at (fields.DateTime): Update timestamp (read-only).
     """
@@ -85,34 +84,6 @@ class ResourceSchema(SQLAlchemyAutoSchema):
         }
     )
 
-    @staticmethod
-    def validate_company_id(value):
-        """
-        Validate that the company_id is a valid UUID string.
-
-        Args:
-            value (str): The company_id value to validate.
-
-        Raises:
-            ValidationError: If the value is not a valid UUID string.
-
-        Returns:
-            None
-        """
-        try:
-            uuid.UUID(str(value))
-        except Exception as exc:
-            raise ValidationError(
-                "company_id must be a valid UUID string."
-            ) from exc
-
-    company_id = fields.String(
-        required=True,
-        validate=validate_company_id,
-        metadata={
-            "description": "Company UUID (required, validated as UUID)."
-        }
-    )
     created_at = fields.DateTime(
         dump_only=True,
         metadata={

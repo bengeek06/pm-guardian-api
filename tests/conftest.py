@@ -65,12 +65,12 @@ def resource(session):
     """
     created_resources = []
 
-    def _create_resource(company_id):
+
+    def _create_resource():
         res = ResourceModel(
             id=str(uuid.uuid4()),
             name="test_resource",
-            description="Ressource de test pour les permissions.",
-            company_id=company_id
+            description="Ressource de test pour les permissions."
         )
         session.add(res)
         session.commit()

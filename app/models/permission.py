@@ -41,7 +41,6 @@ class Permission(db.Model):
 
     Attributes:
         id (str): Unique identifier (UUID) for the permission.
-        company_id (str): Foreign key linking the permission to a company.
         operation (OperationEnum): Allowed operation type.
         resource_id (str): Foreign key to the resource.
         created_at (datetime): Timestamp when created.
@@ -50,8 +49,8 @@ class Permission(db.Model):
     __tablename__ = 'permissions'
     __table_args__ = (
         db.UniqueConstraint(
-            'company_id', 'resource_id', 'operation',
-            name='uq_permission_company_resource_operation'
+            'resource_id', 'operation',
+            name='uq_permission_resource_operation'
         ),
     )
     id = db.Column(
@@ -59,7 +58,6 @@ class Permission(db.Model):
         primary_key=True,
         default=lambda: str(uuid.uuid4())
     )
-    company_id = db.Column(db.String(36), nullable=False)
     operation = db.Column(
         db.Enum(
             OperationEnum,
@@ -84,6 +82,13 @@ class Permission(db.Model):
 
     def __repr__(self):
         """
+    operation = db.Column(
+        db.Enum(
+            OperationEnum,
+            values_callable=lambda x: [e.value for e in x]
+        ),
+        nullable=False
+    )
         Return a string representation of the Permission instance.
 
         Returns:

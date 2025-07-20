@@ -1,8 +1,9 @@
-"""initial varsion
+"""initial version
 
-Revision ID: c3b4fe11e50b
+
+Revision ID: a9dc8adecd18
 Revises: 
-Create Date: 2025-07-20 09:28:23.173356
+Create Date: 2025-07-20 12:34:36.287514
 
 """
 from alembic import op
@@ -10,7 +11,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'c3b4fe11e50b'
+revision = 'a9dc8adecd18'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -30,11 +31,10 @@ def upgrade():
     sa.Column('id', sa.String(length=36), nullable=False),
     sa.Column('name', sa.String(length=50), nullable=False),
     sa.Column('description', sa.String(length=255), nullable=True),
-    sa.Column('company_id', sa.String(length=36), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('name', 'company_id', name='uq_resource_name_company')
+    sa.UniqueConstraint('name')
     )
     op.create_table('roles',
     sa.Column('id', sa.String(length=36), nullable=False),
@@ -48,14 +48,13 @@ def upgrade():
     )
     op.create_table('permissions',
     sa.Column('id', sa.String(length=36), nullable=False),
-    sa.Column('company_id', sa.String(length=36), nullable=False),
     sa.Column('operation', sa.Enum('create', 'read', 'update', 'delete', name='operationenum'), nullable=False),
     sa.Column('resource_id', sa.String(length=36), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
     sa.ForeignKeyConstraint(['resource_id'], ['resources.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('company_id', 'resource_id', 'operation', name='uq_permission_company_resource_operation')
+    sa.UniqueConstraint('resource_id', 'operation', name='uq_permission_resource_operation')
     )
     op.create_table('role_policies',
     sa.Column('id', sa.String(), nullable=False),

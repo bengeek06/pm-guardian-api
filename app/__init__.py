@@ -27,7 +27,7 @@ from werkzeug.exceptions import InternalServerError
 from .models.db import db
 from .logger import logger
 from .routes import register_routes
-
+from app.models.resource import sync_resources
 
 # Initialisation des extensions Flask
 migrate = Migrate()
@@ -194,6 +194,10 @@ def create_app(config_class):
     if app.config.get('TESTING'):
         register_test_routes(app)
 
-    logger.info("App created successfully.")
 
+    # Synchronize resources
+    with app.app_context():
+        sync_resources()
+
+    logger.info("App created successfully.")
     return app

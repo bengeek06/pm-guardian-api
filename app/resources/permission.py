@@ -41,8 +41,7 @@ class PermissionListResource(Resource):
             request_id=getattr(g, "request_id", None)
         )
         try:
-            company_id = request.args.get('company_id')
-            permissions = Permission.query.filter_by(company_id=company_id).all()
+            permissions = Permission.query.all()
             schema = PermissionSchema(session=db.session, many=True)
             return schema.dump(permissions), 200
         except SQLAlchemyError as err:
