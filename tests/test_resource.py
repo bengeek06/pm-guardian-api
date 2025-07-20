@@ -22,7 +22,7 @@ Helper functions:
 """
 
 import uuid
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError
 from app.models.resource import Resource
 
 
@@ -150,7 +150,7 @@ def test_post_resources_db_error(client, monkeypatch):
     """Should return 500 if a database error occurs during resource creation."""
     def raise_sqlalchemy_error(*args, **kwargs):
         raise SQLAlchemyError("Mocked SQLAlchemyError")
-    monkeypatch.setattr("app.models.db.session.commit", raise_sqlalchemy_error)
+    monkeypatch.setattr("app.models.db.db.session.commit", raise_sqlalchemy_error)
     company_id = str(uuid.uuid4())
     resp = client.post("/resources", json={"name": "Resource1", "description": "desc", "company_id": company_id})
     assert resp.status_code == 500
@@ -239,7 +239,7 @@ def test_put_resource_db_error(client, session, monkeypatch):
     resource = create_resource(session, company_id, name="Res1")
     def raise_sqlalchemy_error(*args, **kwargs):
         raise SQLAlchemyError("Mocked SQLAlchemyError")
-    monkeypatch.setattr("app.models.db.session.commit", raise_sqlalchemy_error)
+    monkeypatch.setattr("app.models.db.db.session.commit", raise_sqlalchemy_error)
     payload = {"name": "Res1", "description": "desc", "company_id": company_id}
     resp = client.put(f"/resources/{resource.id}", json=payload)
     assert resp.status_code == 500
@@ -298,7 +298,7 @@ def test_patch_resource_db_error(client, session, monkeypatch):
     resource = create_resource(session, company_id, name="Res1")
     def raise_sqlalchemy_error(*args, **kwargs):
         raise SQLAlchemyError("Mocked SQLAlchemyError")
-    monkeypatch.setattr("app.models.db.session.commit", raise_sqlalchemy_error)
+    monkeypatch.setattr("app.models.db.db.session.commit", raise_sqlalchemy_error)
     payload = {"description": "desc"}
     resp = client.patch(f"/resources/{resource.id}", json=payload)
     assert resp.status_code == 500
@@ -333,7 +333,7 @@ def test_delete_resource_db_error(client, session, monkeypatch):
     resource = create_resource(session, company_id, name="Res1")
     def raise_sqlalchemy_error(*args, **kwargs):
         raise SQLAlchemyError("Mocked SQLAlchemyError")
-    monkeypatch.setattr("app.models.db.session.commit", raise_sqlalchemy_error)
+    monkeypatch.setattr("app.models.db.db.session.commit", raise_sqlalchemy_error)
     resp = client.delete(f"/resources/{resource.id}")
     assert resp.status_code == 500
     data = resp.get_json()

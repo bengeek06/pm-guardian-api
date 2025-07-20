@@ -157,7 +157,7 @@ def test_creater_integrity_error(client, monkeypatch):
         raise IntegrityError("Mocked IntegrityError", None, None)
 
     # Monkeypatch la méthode commit
-    monkeypatch.setattr("app.models.db.session.commit", raise_integrity_error)
+    monkeypatch.setattr("app.models.db.db.session.commit", raise_integrity_error)
 
     response = client.post('/roles', json={'name': 'Test Dummy'})
     assert response.status_code == 400
@@ -168,7 +168,7 @@ def test_create_sqlalchemy_error(client, monkeypatch):
     def raise_sqlalchemy_error(*args, **kwargs):
         raise SQLAlchemyError("Mocked SQLAlchemyError")
 
-    monkeypatch.setattr("app.models.db.session.commit", raise_sqlalchemy_error)
+    monkeypatch.setattr("app.models.db.db.session.commit", raise_sqlalchemy_error)
 
     company_id = str(uuid.uuid4())
     response = client.post("/roles", json={"name": "Manager", "description": "desc", "company_id": company_id})
@@ -460,3 +460,165 @@ def test_delete_role_db_error(client, monkeypatch, session):
     assert resp.status_code == 500
     data = resp.get_json()
     assert "message" in data
+
+############################################################
+# /roles/<role_id>/policies (Role-Policy Assignment Endpoints)
+############################################################
+import pytest
+from app.models.policy import Policy
+from app.models.role_policy import RolePolicy
+
+def create_policy(session, name="TestPolicy"):
+    """Helper to create a policy in the database."""
+    policy = Policy(id=str(uuid.uuid4()), name=name)
+    session.add(policy)
+    session.commit()
+    return policy
+
+def test_assign_policy_to_role_success(client, session):
+    """Should assign a policy to a role and return 201."""
+    company_id = str(uuid.uuid4())
+    role = create_role(session, company_id)
+    policy = create_policy(session, name="P1")
+    resp = client.post(f"/roles/{role.id}/policies", json={"policy_id": policy.id})
+    assert resp.status_code == 201
+    data = resp.get_json()
+    assert "assigned" in data["message"]
+
+def test_assign_policy_missing_policy_id(client, session):
+    """Should return 400 if policy_id is missing."""
+    company_id = str(uuid.uuid4())
+    role = create_role(session, company_id)
+    resp = client.post(f"/roles/{role.id}/policies", json={})
+    assert resp.status_code == 400
+    data = resp.get_json()
+    assert "policy_id" in data["message"]
+
+def test_assign_policy_role_or_policy_not_found(client, session):
+    """Should return 404 if role or policy does not exist."""
+    role_id = str(uuid.uuid4())
+    policy_id = str(uuid.uuid4())
+    resp = client.post(f"/roles/{role_id}/policies", json={"policy_id": policy_id})
+    assert resp.status_code == 404
+    data = resp.get_json()
+    assert "not found" in data["message"].lower()
+
+def test_assign_policy_already_assigned(client, session):
+    """Should return 409 if policy already assigned to role."""
+    company_id = str(uuid.uuid4())
+    role = create_role(session, company_id)
+    policy = create_policy(session, name="P2")
+    # Assign once
+    client.post(f"/roles/{role.id}/policies", json={"policy_id": policy.id})
+    # Assign again
+    resp = client.post(f"/roles/{role.id}/policies", json={"policy_id": policy.id})
+    assert resp.status_code == 409
+    data = resp.get_json()
+    assert "already assigned" in data["message"].lower()
+
+def test_assign_policy_db_error(client, session, monkeypatch):
+    """Should return 500 if DB error occurs during assignment."""
+    company_id = str(uuid.uuid4())
+    role = create_role(session, company_id)
+    policy = create_policy(session, name="P3")
+    def raise_sqlalchemy_error(*args, **kwargs):
+        from sqlalchemy.exc import SQLAlchemyError
+        raise SQLAlchemyError("Mocked DB error")
+    monkeypatch.setattr("app.models.role_policy.db.session.commit", raise_sqlalchemy_error)
+    resp = client.post(f"/roles/{role.id}/policies", json={"policy_id": policy.id})
+    assert resp.status_code == 500
+    data = resp.get_json()
+    assert "error" in data["message"] or "occurred" in data["message"]
+
+def test_list_policies_for_role_success(client, session):
+    """Should list all policies assigned to a role."""
+    company_id = str(uuid.uuid4())
+    role = create_role(session, company_id)
+    policy1 = create_policy(session, name="P4")
+    policy2 = create_policy(session, name="P5")
+    # Assign policies
+    client.post(f"/roles/{role.id}/policies", json={"policy_id": policy1.id})
+    client.post(f"/roles/{role.id}/policies", json={"policy_id": policy2.id})
+    resp = client.get(f"/roles/{role.id}/policies")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert isinstance(data, list)
+    ids = [p["id"] for p in data]
+    assert policy1.id in ids and policy2.id in ids
+
+def test_list_policies_role_not_found(client):
+    """Should return 404 if role does not exist when listing policies."""
+    role_id = str(uuid.uuid4())
+    resp = client.get(f"/roles/{role_id}/policies")
+    assert resp.status_code == 404
+    data = resp.get_json()
+    assert "not found" in data["message"].lower()
+
+def test_list_policies_db_error(client, session, monkeypatch):
+    """Should return 500 if DB error occurs during list."""
+    company_id = str(uuid.uuid4())
+    role = create_role(session, company_id)
+    def raise_sqlalchemy_error(*args, **kwargs):
+        from sqlalchemy.exc import SQLAlchemyError
+        raise SQLAlchemyError("Mocked DB error")
+    monkeypatch.setattr("app.models.role_policy.db.session.get", lambda *a, **k: (_ for _ in ()).throw(Exception("Mocked DB error")))
+    resp = client.get(f"/roles/{role.id}/policies")
+    assert resp.status_code == 500
+    data = resp.get_json()
+    assert "error" in data["message"] or "occurred" in data["message"]
+
+def test_remove_policy_from_role_success(client, session):
+    """Should remove a policy from a role and return 204."""
+    company_id = str(uuid.uuid4())
+    role = create_role(session, company_id)
+    policy = create_policy(session, name="P6")
+    client.post(f"/roles/{role.id}/policies", json={"policy_id": policy.id})
+    resp = client.delete(f"/roles/{role.id}/policies?policy_id={policy.id}")
+    assert resp.status_code == 204
+    # Confirm removal
+    resp2 = client.get(f"/roles/{role.id}/policies")
+    ids = [p["id"] for p in resp2.get_json()]
+    assert policy.id not in ids
+
+def test_remove_policy_missing_policy_id(client, session):
+    """Should return 400 if policy_id is missing in query."""
+    company_id = str(uuid.uuid4())
+    role = create_role(session, company_id)
+    resp = client.delete(f"/roles/{role.id}/policies")
+    assert resp.status_code == 400
+    data = resp.get_json()
+    assert "policy_id" in data["message"]
+
+def test_remove_policy_role_or_policy_not_found(client, session):
+    """Should return 404 if role or policy does not exist when removing."""
+    role_id = str(uuid.uuid4())
+    policy_id = str(uuid.uuid4())
+    resp = client.delete(f"/roles/{role_id}/policies?policy_id={policy_id}")
+    assert resp.status_code == 404
+    data = resp.get_json()
+    assert "not found" in data["message"].lower()
+
+def test_remove_policy_not_assigned(client, session):
+    """Should return 404 if policy is not assigned to role when removing."""
+    company_id = str(uuid.uuid4())
+    role = create_role(session, company_id)
+    policy = create_policy(session, name="P7")
+    resp = client.delete(f"/roles/{role.id}/policies?policy_id={policy.id}")
+    assert resp.status_code == 404
+    data = resp.get_json()
+    assert "not assigned" in data["message"].lower()
+
+def test_remove_policy_db_error(client, session, monkeypatch):
+    """Should return 500 if DB error occurs during removal."""
+    company_id = str(uuid.uuid4())
+    role = create_role(session, company_id)
+    policy = create_policy(session, name="P8")
+    client.post(f"/roles/{role.id}/policies", json={"policy_id": policy.id})
+    def raise_sqlalchemy_error(*args, **kwargs):
+        from sqlalchemy.exc import SQLAlchemyError
+        raise SQLAlchemyError("Mocked DB error")
+    monkeypatch.setattr("app.models.role_policy.db.session.commit", raise_sqlalchemy_error)
+    resp = client.delete(f"/roles/{role.id}/policies?policy_id={policy.id}")
+    assert resp.status_code == 500
+    data = resp.get_json()
+    assert "error" in data["message"] or "occurred" in data["message"]

@@ -18,18 +18,43 @@ Functions:
 """
 
 import os
-from flask import Flask, request, g
+from flask import Flask, request, g, abort
 from flask_migrate import Migrate
 from flask_marshmallow import Marshmallow
 from flask_cors import CORS
+from werkzeug.exceptions import InternalServerError
 
-from .models import db
+from .models.db import db
 from .logger import logger
 from .routes import register_routes
+
 
 # Initialisation des extensions Flask
 migrate = Migrate()
 ma = Marshmallow()
+
+
+def register_test_routes(app):
+    """
+    Register test-only routes that trigger error handlers directly.
+    Args:
+        app (Flask): The Flask application instance.
+    """
+    @app.route('/unauthorized')
+    def trigger_unauthorized():
+        abort(401)
+
+    @app.route('/forbidden')
+    def trigger_forbidden():
+        abort(403)
+
+    @app.route('/bad')
+    def trigger_bad():
+        abort(400)
+
+    @app.route('/fail')
+    def trigger_fail():
+        raise InternalServerError("Test internal error")
 
 
 def register_extensions(app):
@@ -166,6 +191,9 @@ def create_app(config_class):
     register_extensions(app)
     register_error_handlers(app)
     register_routes(app)
+    if app.config.get('TESTING'):
+        register_test_routes(app)
+
     logger.info("App created successfully.")
 
     return app
