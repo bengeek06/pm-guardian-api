@@ -8,7 +8,7 @@ configuration through a REST endpoint.
 
 import os
 from flask_restful import Resource
-
+from app.utils import check_access_required
 
 class ConfigResource(Resource):
     """
@@ -19,6 +19,7 @@ class ConfigResource(Resource):
             Retrieve the current application configuration.
     """
 
+    @check_access_required('read')
     def get(self):
         """
         Retrieve the current application configuration.

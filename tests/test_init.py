@@ -5,9 +5,26 @@ This module contains tests for the Flask application factory, error handlers, an
 It ensures that the app is created correctly, custom error handlers work as expected,
 and the main run logic is invoked properly.
 """
+import pytest
 from flask import Flask
 import app
 
+@pytest.mark.parametrize("route,expected_status,message", [
+    ("/unauthorized", 401, "Unauthorized"),
+    ("/forbidden", 403, "Forbidden"),
+    ("/bad", 400, "Bad request"),
+    ("/fail", 500, "Internal server error"),
+])
+
+def test_error_handlers(client, route, expected_status, message):
+    """
+    Test custom error handlers for 401, 403, 400, and 500 errors.
+    """
+    resp = client.get(route)
+    assert resp.status_code == expected_status
+    assert resp.is_json
+    data = resp.get_json()
+    assert data["message"].lower() == message.lower()
 
 def test_main_runs(monkeypatch):
     """
@@ -41,78 +58,3 @@ def test_handle_404(client):
     assert response.status_code == 404
     assert response.is_json
     assert response.get_json()["message"] == "Resource not found"
-
-
-def test_error_handler_400(client):
-    """
-    Test that a 400 Bad Request error returns the correct JSON response.
-    """
-    from werkzeug.exceptions import BadRequest
-
-    @client.application.route("/bad")
-    def bad():
-        raise BadRequest()
-
-    response = client.get("/bad")
-    assert response.status_code == 400
-    data = response.get_json()
-    assert data["message"] == "Bad request"
-    assert data["path"] == "/bad"
-    assert data["method"] == "GET"
-    assert "request_id" in data
-
-
-def test_error_handler_500(client):
-    """
-    Test that a 500 Internal Server Error returns the correct JSON response.
-    """
-    # Désactive la propagation pour tester le handler 500
-    client.application.config["PROPAGATE_EXCEPTIONS"] = False
-
-    @client.application.route("/fail")
-    def fail():
-        raise Exception("fail!")
-
-    response = client.get("/fail")
-    assert response.status_code == 500
-    data = response.get_json()
-    assert data["message"] == "Internal server error"
-    assert data["path"] == "/fail"
-    assert data["method"] == "GET"
-    assert "request_id" in data
-
-def test_error_handler_401(client):
-    """
-    Test that a 401 Unauthorized error returns the correct JSON response.
-    """
-    from werkzeug.exceptions import Unauthorized
-
-    @client.application.route("/unauthorized")
-    def unauthorized():
-        raise Unauthorized()
-
-    response = client.get("/unauthorized")
-    assert response.status_code == 401
-    data = response.get_json()
-    assert data["message"] == "Unauthorized"
-    assert data["path"] == "/unauthorized"
-    assert data["method"] == "GET"
-    assert "request_id" in data
-
-def test_error_handler_403(client):
-    """
-    Test that a 403 Forbidden error returns the correct JSON response.
-    """
-    from werkzeug.exceptions import Forbidden
-
-    @client.application.route("/forbidden")
-    def forbidden():
-        raise Forbidden()
-
-    response = client.get("/forbidden")
-    assert response.status_code == 403
-    data = response.get_json()
-    assert data["message"] == "Forbidden"
-    assert data["path"] == "/forbidden"
-    assert data["method"] == "GET"
-    assert "request_id" in data

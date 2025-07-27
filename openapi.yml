@@ -1,339 +1,1433 @@
 openapi: 3.0.3
 info:
-  title: Dummy API
-  version: '1.0'
-  description: API for managing dummy items.
+  title: Guardian Service API
+  version: 0.0.1
+  description: API for Role-Based Access Control (RBAC)
 
 servers:
-  - url: http://localhost:5000/
+  - url: http://localhost:5000
+    description: Local development server
+  - url: http://localhost:5002
+    description: Staging development server
 
 paths:
-  /version:
-    get:
-      tags: ["Meta"]
-      summary: Get API version
+  /roles:
+    post:
+      tags: [Role]
+      summary: Create a role
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleCreate'
       responses:
-        '200':
-          description: Current API version
+        '201':
+          description: Role created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '400':
+          description: Bad request - Invalid role data
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  version:
+                  error:
                     type: string
-                    example: "1.0.0"
-  /config:
-    get:
-      tags: ["Meta"]
-      summary: Get application configuration
-      responses:
-        '200':
-          description: Current application configuration
+        '404':
+          description: Role not found
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  FLASK_ENV:
+                  error:
                     type: string
-                    example: "development"
-                  DEBUG:
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
                     type: string
-                    example: "True"
-                  DATABASE_URI:
-                    type: string
-                    example: "sqlite:///:memory:"
-
-  /dummies:
     get:
-      tags: ["Dummies"]
-      summary: List all dummy items
+      tags: [Role]
+      summary: List roles
       responses:
         '200':
-          description: List of dummy items
+          description: List of roles
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Dummy'
-    post:
-      tags: ["Dummies"]
-      summary: Create a new dummy item
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DummyCreate'
-      responses:
-        '201':
-          description: Dummy item created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Dummy'
+                  $ref: '#/components/schemas/Role'
         '400':
-          description: Validation error
+          description: Bad request - Invalid query parameters
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ValidationError'
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Role not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         '500':
-          description: Database error
+          description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                type: object
+                properties:
+                  error:
+                    type: string
 
-  /dummies/{dummy_id}:
-    parameters:
-      - name: dummy_id
-        in: path
-        required: true
-        schema:
-          type: integer
+  /roles/{role_id}:
     get:
-      tags: ["Dummies"]
-      summary: Get a dummy item by ID
+      tags: [Role]
+      summary: Get role by ID
+      parameters:
+        - in: path
+          name: role_id
+          required: true
+          schema:
+            type: string
       responses:
         '200':
-          description: Dummy item found
+          description: Role retrieved
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Dummy'
+                $ref: '#/components/schemas/Role'
+        '400':
+          description: Bad request - Invalid role ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         '404':
-          description: Dummy not found
+          description: Role not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
     put:
-      tags: ["Dummies"]
-      summary: Replace a dummy item by ID
+      tags: [Role]
+      summary: Update role by ID
+      parameters:
+        - in: path
+          name: role_id
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DummyCreate'
+              $ref: '#/components/schemas/RoleCreate'
       responses:
         '200':
-          description: Dummy item updated
+          description: Role updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Dummy'
+                $ref: '#/components/schemas/Role'
         '400':
-          description: Validation or integrity error
+          description: Bad request - Invalid role ID or data
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ValidationError'
+                type: object
+                properties:
+                  error:
+                    type: string
         '404':
-          description: Dummy not found
+          description: Role not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                type: object
+                properties:
+                  error:
+                    type: string
         '500':
-          description: Database error
+          description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                type: object
+                properties:
+                  error:
+                    type: string
     patch:
-      tags: ["Dummies"]
-      summary: Partially update a dummy item by ID
+      tags: [Role]
+      summary: Partially update role by ID
+      parameters:
+        - in: path
+          name: role_id
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DummyUpdate'
+              $ref: '#/components/schemas/RoleCreate'
       responses:
         '200':
-          description: Dummy item updated
+          description: Role partially updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Dummy'
+                $ref: '#/components/schemas/Role'
         '400':
-          description: Validation or integrity error
+          description: Bad request - Invalid role ID or data
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ValidationError'
+                type: object
+                properties:
+                  error:
+                    type: string
         '404':
-          description: Dummy not found
+          description: Role not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                type: object
+                properties:
+                  error:
+                    type: string
         '500':
-          description: Database error
+          description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                type: object
+                properties:
+                  error:
+                    type: string
     delete:
-      tags: ["Dummies"]
-      summary: Delete a dummy item by ID
+      tags: [Role]
+      summary: Delete role by ID
+      parameters:
+        - in: path
+          name: role_id
+          required: true
+          schema:
+            type: string
       responses:
         '204':
-          description: Dummy deleted successfully
+          description: Role deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '400':
+          description: Bad request - Invalid role ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         '404':
-          description: Dummy not found
+          description: Role not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                type: object
+                properties:
+                  error:
+                    type: string
         '500':
-          description: Database error
+          description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                type: object
+                properties:
+                  error:
+                    type: string
 
-  /export/csv:
+  /permissions:
+    post:
+      tags: [Permission]
+      summary: Create a permission (operation-resource pair)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermissionCreate'
+      responses:
+        '201':
+          description: Permission created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Permission'
+        '400':
+          description: Bad request - Invalid permission data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Permission not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
     get:
-      tags: ["Export"]
-      summary: Export all dummy items as CSV
+      tags: [Permission]
+      summary: List permissions
       responses:
         '200':
-          description: CSV file containing all dummy items
+          description: List of permissions
           content:
-            text/csv:
+            application/json:
               schema:
-                type: string
-                format: binary
-
-  /import/csv:
-    post:
-      tags: ["Import"]
-      summary: Import dummy items from a CSV file
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                file:
-                  type: string
-                  format: binary
-      responses:
-        '200':
-          description: Import successful
+                type: array
+                items:
+                  $ref: '#/components/schemas/Permission'
+        '400':
+          description: Bad request - Invalid query parameters
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  message:
+                  error:
                     type: string
-        '207':
-          description: Partial success with errors
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ValidationError'
-        '400':
-          description: Import failed or validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ValidationError'
-
-  /import/json:
-    post:
-      tags: ['Import']
-      summary: Import dummy items from a JSON file
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                file:
-                  type: string
-                  format: binary
-      responses:
-        '200':
-          description: Import successful
+        '404':
+          description: Permission not found
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  message:
+                  error:
                     type: string
-        '207':
-          description: Partial success with errors
+        '500':
+          description: Internal server error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ValidationError'
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /permissions/{permission_id}:
+    get:
+      tags: [Permission]
+      summary: Get permission by ID
+      parameters:
+        - in: path
+          name: permission_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Permission retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Permission'
         '400':
-          description: Import failed or validation error
+          description: Bad request - Invalid permission ID
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ValidationError'
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Permission not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+    put:
+      tags: [Permission]
+      summary: Update permission by ID
+      parameters:
+        - in: path
+          name: permission_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermissionCreate'
+      responses:
+        '200':
+          description: Permission updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Permission'
+        '400':
+          description: Bad request - Invalid permission ID or data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Permission not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+    patch:
+      tags: [Permission]
+      summary: Partially update permission by ID
+      parameters:
+        - in: path
+          name: permission_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermissionCreate'
+      responses:
+        '200':
+          description: Permission partially updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Permission'
+        '400':
+          description: Bad request - Invalid permission ID or data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Permission not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+    delete:
+      tags: [Permission]
+      summary: Delete permission by ID
+      parameters:
+        - in: path
+          name: permission_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Permission deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Permission'
+        '400':
+          description: Bad request - Invalid permission ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Permission not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /policies:
+    post:
+      tags: [Policy]
+      summary: Create a policy with a set of permissions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyCreate'
+      responses:
+        '201':
+          description: Policy created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+        '400':
+          description: Bad request - Invalid policy data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Policy not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+    get:
+      tags: [Policy]
+      summary: List policies
+      responses:
+        '200':
+          description: List of policies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Policy'
+        '400':
+          description: Bad request - Invalid query parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Policy not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /policies/{policy_id}:
+    get:
+      tags: [Policy]
+      summary: Get policy by ID
+      parameters:
+        - in: path
+          name: policy_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Policy retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+        '400':
+          description: Bad request - Invalid policy ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Policy not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+    put:
+      tags: [Policy]
+      summary: Update policy by ID
+      parameters:
+        - in: path
+          name: policy_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyCreate'
+      responses:
+        '200':
+          description: Policy updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+        '400':
+          description: Bad request - Invalid policy ID or data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Policy not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+    patch:
+      tags: [Policy]
+      summary: Partially update policy by ID
+      parameters:
+        - in: path
+          name: policy_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyCreate'
+      responses:
+        '200':
+          description: Policy partially updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+        '400':
+          description: Bad request - Invalid policy ID or data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Policy not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+    delete:
+      tags: [Policy]
+      summary: Delete policy by ID
+      parameters:
+        - in: path
+          name: policy_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Policy deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+        '400':
+          description: Bad request - Invalid policy ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Policy not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /roles/{role_id}/policies:
+    post:
+      tags: [RolePolicy]
+      summary: Assign a policy to a role
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                policy_id:
+                  type: string
+      responses:
+        '201':
+          description: Policy successfully assigned to the role
+        '400':
+          description: Bad request - Invalid role ID or policy ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Role or policy not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+    get:
+      tags: [RolePolicy]
+      summary: List policies assigned to a role
+      responses:
+        '200':
+          description: List of policies assigned to the role
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Policy'
+        '400':
+          description: Bad request - Invalid role ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Role not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+    delete:
+      tags: [RolePolicy]
+      summary: Remove a policy from a role
+      parameters:
+        - in: path
+          name: role_id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: policy_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Policy removed from role
+        '400':
+          description: Bad request - Invalid role ID or policy ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Role or policy not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /check-access:
+    post:
+      tags: [AccessCheck]
+      summary: Check if a user has access to perform an action
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccessCheck'
+      responses:
+        '200':
+          description: Access check result with explanation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessCheckResponse'
+        '400':
+          description: Bad request - Invalid input data for access check
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: User or resource not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /resources:
+    post:
+      tags: [Resource]
+      summary: Create a resource
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Resource'
+      responses:
+        '201':
+          description: Resource created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Resource'
+        '400':
+          description: Bad request - Invalid resource data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+    get:
+      tags: [Resource]
+      summary: List resources
+      responses:
+        '200':
+          description: List of resources
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Resource'
+        '400':
+          description: Bad request - Invalid query parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /resources/{resource_id}:
+    get:
+      tags: [Resource]
+      summary: Get resource by ID
+      parameters:
+        - in: path
+          name: resource_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Resource retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Resource'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '400':
+          description: Bad request - Invalid resource ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+    put:
+      tags: [Resource]
+      summary: Update resource by ID
+      parameters:
+        - in: path
+          name: resource_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Resource'
+      responses:
+        '200':
+          description: Resource updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Resource'
+        '400':
+          description: Bad request - Invalid resource ID or data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+    patch:
+      tags: [Resource]
+      summary: Partially update resource by ID
+      parameters:
+        - in: path
+          name: resource_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Resource'
+      responses:
+        '200':
+          description: Resource partially updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Resource'
+        '400':
+          description: Bad request - Invalid resource ID or data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+    delete:
+      tags: [Resource]
+      summary: Delete resource by ID
+      parameters:
+        - in: path
+          name: resource_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Resource deleted
+        '400':
+          description: Bad request - Invalid role ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
 
 components:
   schemas:
-    Dummy:
-      type: object
-      properties:
-        id:
-          type: integer
-          example: 1
-        name:
-          type: string
-          example: "Test Dummy"
-        description:
-          type: string
-          example: "A test dummy"
-    DummyCreate:
+    RoleCreate:
       type: object
       required:
         - name
+        - company_id
       properties:
         name:
           type: string
-          example: "Test Dummy"
-        description:
+          description: Name of the role.
+        company_id:
           type: string
-          example: "A test dummy"
-    DummyUpdate:
+          description: Unique identifier of the company to which the role belongs.
+
+    Role:
       type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the role.
+        name:
+          type: string
+          description: Name of the role.
+        company_id:
+          type: string
+          description: Unique identifier of the company to which the role belongs.
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the role was created (ISO 8601).
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the role was last updated (ISO 8601).
+
+    PermissionCreate:
+      type: object
+      required:
+        - resource_id
+        - operation
+      properties:
+        resource_id:
+          type: string
+          description: Unique identifier of the resource this permission applies to.
+        operation:
+          type: string
+          description: Operation allowed by this permission (e.g., read, write, delete).
+
+    Permission:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the permission.
+        resource_id:
+          type: string
+          description: Unique identifier of the resource this permission applies to.
+        operation:
+          type: string
+          description: Operation allowed by this permission (e.g., read, write, delete).
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the permission was created (ISO 8601).
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the permission was last updated (ISO 8601).
+
+    PolicyCreate:
+      type: object
+      required:
+        - name
+        - permission_ids
       properties:
         name:
           type: string
-          example: "Updated Dummy"
+          description: Name of the policy.
+        permission_ids:
+          type: array
+          items:
+            type: string
+          description: List of unique identifiers of permissions included in the policy.
+
+    Policy:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the policy.
+        name:
+          type: string
+          description: Name of the policy.
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the policy was created (ISO 8601).
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the policy was last updated (ISO 8601).
+
+    AccessCheck:
+      type: object
+      required:
+        - user_id
+        - resource
+        - operation
+      properties:
+        user_id:
+          type: string
+          description: Unique identifier of the user to check access for.
+        resource:
+          type: string
+          description: Name or unique identifier of the resource to check access on.
+        operation:
+          type: string
+          description: Operation to check access for (e.g., read, write, delete).
+
+    AccessCheckResponse:
+      type: object
+      properties:
+        access_granted:
+          type: boolean
+          description: True if access is granted, false otherwise.
+        reason:
+          type: string
+          description: Explanation or reason for the access decision.
+
+    RolePolicy:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the role-policy association.
+        role_id:
+          type: string
+          description: Unique identifier of the role.
+        policy_id:
+          type: string
+          description: Unique identifier of the policy.
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the association was created (ISO 8601).
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the association was last updated (ISO 8601).
+
+    Resource:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the resource.
+        name:
+          type: string
+          description: Name of the resource (e.g., 'document', 'user', 'invoice').
         description:
           type: string
-          example: "Updated description"
-    Error:
-      type: object
-      properties:
-        message:
+          description: Human-readable description of the resource and its purpose.
+        created_at:
           type: string
-          example: "Dummy not found"
-        error:
+          format: date-time
+          description: Timestamp when the resource was created (ISO 8601).
+        updated_at:
           type: string
-          example: "Integrity error"
-    ValidationError:
-      type: object
-      properties:
-        message:
-          type: string
-          example: "Validation error"
-        errors:
-          type: object
-          additionalProperties: true
-          example: {"name": ["Name must be unique."]}
+          format: date-time
+          description: Timestamp when the resource was last updated (ISO 8601).
+

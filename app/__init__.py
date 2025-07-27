@@ -18,17 +18,44 @@ Functions:
 """
 
 import os
-from flask import Flask, request, g
+from flask import Flask, request, g, abort
 from flask_migrate import Migrate
 from flask_marshmallow import Marshmallow
+from flask_cors import CORS
+from werkzeug.exceptions import InternalServerError
 
-from .models import db
-from .logger import logger
-from .routes import register_routes
+from app.models.db import db
+from app.logger import logger
+from app.routes import register_routes
+from app.models.resource import sync_resources
+from app.models.role import ensure_superadmin_role
 
 # Initialisation des extensions Flask
 migrate = Migrate()
 ma = Marshmallow()
+
+
+def register_test_routes(app):
+    """
+    Register test-only routes that trigger error handlers directly.
+    Args:
+        app (Flask): The Flask application instance.
+    """
+    @app.route('/unauthorized')
+    def trigger_unauthorized():
+        abort(401)
+
+    @app.route('/forbidden')
+    def trigger_forbidden():
+        abort(403)
+
+    @app.route('/bad')
+    def trigger_bad():
+        abort(400)
+
+    @app.route('/fail')
+    def trigger_fail():
+        raise InternalServerError("Test internal error")
 
 
 def register_extensions(app):
@@ -155,10 +182,25 @@ def create_app(config_class):
     logger.info("Creating app in %s environment.", env)
     app = Flask(__name__)
     app.config.from_object(config_class)
+    if env in ('development', 'staging'):
+        CORS(
+            app,
+            supports_credentials=True,
+            resources={r"/*": {"origins": "*"}}
+            )
 
     register_extensions(app)
     register_error_handlers(app)
     register_routes(app)
-    logger.info("App created successfully.")
+    if app.config.get('TESTING'):
+        register_test_routes(app)
 
+
+    # Synchronize resources
+    with app.app_context():
+        sync_resources()
+        db.create_all()
+        ensure_superadmin_role()
+
+    logger.info("App created successfully.")
     return app
