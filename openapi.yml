@@ -11,6 +11,28 @@ servers:
     description: Staging development server
 
 paths:
+  /version:
+    get:
+      tags: [System]
+      summary: Get API version
+      description: Returns the current version of the Guardian Service API
+      responses:
+        '200':
+          description: API version information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    description: Current API version
+                    example: "0.0.1"
+              example:
+                version: "0.0.1"
+        '500':
+          description: Internal server error
+
   /roles:
     post:
       tags: [Role]
