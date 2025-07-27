@@ -6,11 +6,11 @@ Defines the canonical list of resources for the PM Guardian API.
 """
 
 RESOURCES = [
-    # Example resources (replace with your actual resource names and descriptions)
-    {"name": "project", "description": "Project entity"},
-    {"name": "user", "description": "User entity"},
-    {"name": "role", "description": "Role entity"},
-    {"name": "policy", "description": "Policy entity"},
-    {"name": "permission", "description": "Permission entity"},
-    # Add more as needed
+    # guardian resources
+    {"name": "ConfigResource", "description": "Application configuration endpoint"},
+    {"name": "PermissionResource", "description": "Permission management endpoint"},
+    {"name": "PolicyResource", "description": "Policy management endpoint"},
+    {"name": "ResourceResource", "description": "Resource management endpoint"},
+    {"name": "RoleResource", "description": "Role management endpoint"},
+    {"name": "UserRoleResource", "description": "User-role assignment endpoint"},
 ]

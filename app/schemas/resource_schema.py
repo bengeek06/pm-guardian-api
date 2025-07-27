@@ -8,9 +8,9 @@ model instances, ensuring data integrity and proper formatting in API requests
 and responses.
 """
 
-import uuid
+#import uuid
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
-from marshmallow import fields, validate, ValidationError
+from marshmallow import fields, validate
 from app.models.resource import Resource
 
 

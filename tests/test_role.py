@@ -63,13 +63,10 @@ def test_get_roles_empty(client, session):
 def test_get_roles_missing_company_id(client):
     """Should return 200 and an empty list if company_id param is missing (matches no roles)."""
     resp = client.get("/roles")
-    assert resp.status_code == 200 or resp.status_code == 500
-    # Accept either: empty list (if code allows) or error (if code requires company_id)
-    # If error, check message
-    if resp.status_code == 200:
-        assert resp.get_json() == []
-    else:
-        assert "message" in resp.get_json()
+    assert resp.status_code == 200
+    # On attend la liste des rôles sans company_id (ex: superadmin)
+    data = resp.get_json()
+    assert isinstance(data, list)
 
 def test_get_roles_invalid_company_id_format(client):
     """Should return 200 and an empty list or error for invalid company_id format."""
@@ -105,12 +102,13 @@ def test_post_roles_missing_name(client):
     assert "errors" in data and "name" in data["errors"]
 
 def test_post_roles_missing_company_id(client):
-    """Should return 400 if company_id is missing."""
+    """Should create a role without company_id (e.g. superadmin)."""
     payload = {"name": "Manager", "description": "desc"}
     resp = client.post("/roles", json=payload)
-    assert resp.status_code == 400
+    assert resp.status_code in (201, 200)
     data = resp.get_json()
-    assert "errors" in data and "company_id" in data["errors"]
+    assert data["name"] == "Manager"
+    assert data.get("company_id") is None
 
 def test_post_roles_name_too_long(client):
     """Should return 400 if name is too long."""
@@ -160,7 +158,8 @@ def test_creater_integrity_error(client, monkeypatch):
     monkeypatch.setattr("app.models.db.db.session.commit", raise_integrity_error)
 
     response = client.post('/roles', json={'name': 'Test Dummy'})
-    assert response.status_code == 400
+    # Le code API retourne 409 (CONFLICT) sur une erreur d'intégrité
+    assert response.status_code == 409
 
 
 def test_create_sqlalchemy_error(client, monkeypatch):
@@ -230,14 +229,16 @@ def test_put_role_missing_name(client, session):
     assert "errors" in data and "name" in data["errors"]
 
 def test_put_role_missing_company_id(client, session):
-    """Should return 400 if company_id is missing."""
+    """Should allow update without company_id (company_id remains or becomes None)."""
     company_id = str(uuid.uuid4())
     role = create_role(session, company_id)
     payload = {"name": "NewName", "description": "desc"}
     resp = client.put(f"/roles/{role.id}", json=payload)
-    assert resp.status_code == 400
+    assert resp.status_code == 200
     data = resp.get_json()
-    assert "errors" in data and "company_id" in data["errors"]
+    assert data["name"] == "NewName"
+    # company_id peut être None ou inchangé selon l'implémentation
+    assert "company_id" in data
 
 def test_put_role_name_too_long(client, session):
     """Should return 400 if name is too long."""

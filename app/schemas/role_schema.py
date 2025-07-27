@@ -29,7 +29,7 @@ class RoleSchema(SQLAlchemyAutoSchema):
         id (fields.UUID): Unique identifier for the role (read-only).
         name (fields.String): Name of the role (required, max 50 chars).
         description (fields.String): Description (optional, max 255 chars).
-        company_id (fields.UUID): Company UUID (required).
+        company_id (fields.UUID): Company UUID (optionnel, None pour superadmin).
         created_at (fields.DateTime): Creation timestamp (read-only).
         updated_at (fields.DateTime): Update timestamp (read-only).
     """
@@ -92,6 +92,6 @@ class RoleSchema(SQLAlchemyAutoSchema):
         allow_none=True,
         validate=validate.Length(max=255)
     )
-    company_id = fields.UUID(required=True)
+    company_id = fields.UUID(required=False, allow_none=True)
     created_at = fields.DateTime(dump_only=True)
     updated_at = fields.DateTime(dump_only=True)

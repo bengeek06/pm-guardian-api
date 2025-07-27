@@ -7,7 +7,7 @@ Includes access control decorators using CheckAccessResource logic.
 """
 
 from functools import wraps
-from flask import request, jsonify, g
+from flask import request, g
 from app.models import (
     UserRole, RolePolicy, PolicyPermission, Permission, OperationEnum, Resource
 )
@@ -29,22 +29,29 @@ def check_access_required(operation):
     def decorator(view_func):
         @wraps(view_func)
         def wrapped(*args, **kwargs):
-            resource_name = kwargs.get('resource_name') or request.view_args.get('resource_name')
+            resource_name = kwargs.get('resource_name') or (request.view_args.get('resource_name') if request.view_args else None)
+            # Si non trouvé, déduire depuis le nom de la classe de la ressource (ex: ConfigResource -> 'config')
+            if not resource_name:
+                # Chercher la classe de la ressource Flask-RESTful
+                view_self = args[0] if args else None
+                if view_self and hasattr(view_self, '__class__'):
+                    class_name = view_self.__class__.__name__
+                    # Retirer le suffixe 'Resource' insensible à la casse
+                    if class_name.lower().endswith('resource'):
+                        resource_name = class_name[:-8].lower()
+                        # Si le nom finit par 'resource', on retire ce suffixe
+                        if resource_name.endswith('resource'):
+                            resource_name = resource_name[:-8]
             user_id = getattr(g, 'user_id', None) or request.headers.get('X-User-Id')
             if not user_id or not resource_name:
-                return jsonify({
-                    'error': 'Missing user_id or resource_name for access check.'
-                }), 400
+                return {'error': 'Missing user_id or resource_name for access check.'}, 400
             # Use CheckAccessResource logic
             access_granted, reason, status = check_access(
                 user_id, resource_name, operation
             )
             if access_granted:
                 return view_func(*args, **kwargs)
-            return jsonify({
-                'error': 'Access denied',
-                'reason': reason
-            }), status if isinstance(status, int) else 403
+            return {'error': 'Access denied', 'reason': reason}, status if isinstance(status, int) else 403
         return wrapped
     return decorator
 

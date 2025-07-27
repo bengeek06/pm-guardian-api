@@ -8,6 +8,7 @@ description, and automatic timestamps. All fields and relationships are
 documented for clarity and maintainability.
 """
 import uuid
+from sqlalchemy import inspect
 from app.models.db import db
 from app.resources_list import RESOURCES
 
@@ -67,7 +68,7 @@ def sync_resources():
 
     """
     # Check if the table exists before syncing
-    from sqlalchemy import inspect
+    #from sqlalchemy import inspect
     inspector = inspect(db.engine)
     if not inspector.has_table(Resource.__tablename__):
         # Table does not exist yet (e.g. before migrations)

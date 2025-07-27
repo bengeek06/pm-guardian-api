@@ -11,6 +11,9 @@ clarity and maintainability.
 import uuid
 from app.models.db import db
 
+from app.models.permission import Permission, OperationEnum
+from app.models.resource import Resource
+from app.resources_list import RESOURCES
 
 class Role(db.Model):
     """
@@ -36,7 +39,7 @@ class Role(db.Model):
     )
     name = db.Column(db.String(50), nullable=False, unique=True)
     description = db.Column(db.String(255), nullable=True)
-    company_id = db.Column(db.String(36), nullable=False)
+    company_id = db.Column(db.String(36), nullable=True)
     created_at = db.Column(
         db.DateTime,
         server_default=db.func.current_timestamp()
@@ -59,3 +62,28 @@ class Role(db.Model):
             str: A formatted string showing the role name for debugging.
         """
         return f"<Role {self.name}>"
+
+def ensure_superadmin_role():
+    """
+    Crée le rôle 'superadmin' s'il n'existe pas et lui attribue toutes les
+    permissions sur toutes les ressources et opérations.
+    Cette fonction doit être appelée à l'initialisation de l'application.
+    """
+    # Créer le rôle superadmin s'il n'existe pas
+    superadmin = Role.query.filter_by(name='superadmin').first()
+    if not superadmin:
+        superadmin = Role(name='superadmin', description='Super administrateur')
+        db.session.add(superadmin)
+        db.session.commit()
+
+    # Pour chaque ressource déclarée, s'assurer que toutes les permissions existent
+    for res_dict in RESOURCES:
+        res = Resource.query.filter_by(name=res_dict['name']).first()
+        if not res:
+            continue  # la ressource doit déjà exister
+        for op in OperationEnum:
+            perm = Permission.query.filter_by(resource_id=res.id, operation=op.value).first()
+            if not perm:
+                perm = Permission(resource_id=res.id, operation=op.value)
+                db.session.add(perm)
+                db.session.commit()

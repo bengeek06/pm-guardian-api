@@ -24,10 +24,11 @@ from flask_marshmallow import Marshmallow
 from flask_cors import CORS
 from werkzeug.exceptions import InternalServerError
 
-from .models.db import db
-from .logger import logger
-from .routes import register_routes
+from app.models.db import db
+from app.logger import logger
+from app.routes import register_routes
 from app.models.resource import sync_resources
+from app.models.role import ensure_superadmin_role
 
 # Initialisation des extensions Flask
 migrate = Migrate()
@@ -198,6 +199,8 @@ def create_app(config_class):
     # Synchronize resources
     with app.app_context():
         sync_resources()
+        db.create_all()
+        ensure_superadmin_role()
 
     logger.info("App created successfully.")
     return app

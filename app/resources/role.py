@@ -45,7 +45,10 @@ class RoleListResource(Resource):
         )
         try:
             company_id = request.args.get('company_id')
-            roles = Role.query.filter_by(company_id=company_id).all()
+            if company_id is not None:
+                roles = Role.query.filter_by(company_id=company_id).all()
+            else:
+                roles = Role.query.filter_by(company_id=None).all()
             schema = RoleSchema(session=db.session, many=True)
             return schema.dump(roles), 200
         except SQLAlchemyError as err:

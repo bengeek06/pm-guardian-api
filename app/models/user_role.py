@@ -30,7 +30,7 @@ class UserRole(db.Model):
     __tablename__ = 'user_roles'
     __table_args__ = (
         db.UniqueConstraint(
-            'user_id', 'role_id', 'company_id',
+            'user_id', 'role_id',
             name='uq_user_role'
         ),
     )
@@ -45,7 +45,7 @@ class UserRole(db.Model):
         db.ForeignKey('roles.id'),
         nullable=False
     )
-    company_id = db.Column(db.String(36), nullable=False)
+    company_id = db.Column(db.String(36), nullable=True)
     created_at = db.Column(
         db.DateTime,
         server_default=db.func.current_timestamp()
