@@ -15,11 +15,18 @@ This script:
 import os
 from dotenv import load_dotenv
 from app import create_app
+from app.logger import logger
 
-# Détection de l'environnement
-env = os.environ.get('FLASK_ENV', 'development')
+# Detect the current environment
+env = os.environ.get('FLASK_ENV')
+if not env:
+    logger.warning("FLASK_ENV is not set, defaulting to 'development'")
+    env = 'development'
+else:
+    logger.info(f"Running in {env} environment")
 
-# Chargement du bon fichier .env
+
+# Load the appropriate .env file
 if env == 'production':
     load_dotenv('.env.production')
     config_class = 'app.config.ProductionConfig'
